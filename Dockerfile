@@ -1,23 +1,20 @@
-FROM kylemanna/openvpn:latest
+FROM ubuntu:latest
 
-# Install necessary tools
+# Install necessary packages
 RUN apt-get update && \
-    apt-get install -y \
-    easy-rsa \
-    openvpn-auth-ldap \
-    && rm -rf /var/lib/apt/lists/*
+    apt-get install -y samba vim vsftpd
 
-# Expose ports
-EXPOSE 1194/udp
+# Create a Samba user
+RUN useradd sambauser -m -s /sbin/nologin -G nogroup
 
-# Copy your OpenVPN configuration files
-COPY openvpn /etc/openvpn
+# Set the Samba user password
+RUN echo "sambauser:sambapassword" | chpasswd
 
-# Copy admin panel files
-COPY admin-panel /admin-panel
+# Configure vsftpd
+RUN echo "local_enable=YES" >> /etc/vsftpd.conf
 
-# Set up entry point
-ENTRYPOINT ["/entrypoint.sh"]
+# Expose Samba and FTP ports
+EXPOSE 137/udp 138/udp 139 445 21
 
-# Default command
-CMD ["ovpn_run"]
+# Start Samba and vsftpd services
+CMD service smbd start && service vsftpd start && tail -f /dev/null
